@@ -22,9 +22,23 @@ import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.android.volley.AuthFailureError;
+import com.android.volley.RequestQueue;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.android.volley.Request.Method.POST;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -42,7 +56,11 @@ public class MainActivity extends AppCompatActivity {
         boolean status_div = false;
         boolean status_add = false;
 
-    DecimalFormat format = new DecimalFormat("0.########");
+        DecimalFormat format = new DecimalFormat("0.########");
+
+        String nama,email;
+
+        boolean status_pinFirst = false;
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +70,10 @@ public class MainActivity extends AppCompatActivity {
             requestWindowFeature(Window.FEATURE_NO_TITLE);
 
             setContentView(R.layout.activity_main);
+
+            nama = getIntent().getStringExtra("nama");
+            email = getIntent().getStringExtra("email");
+
 
             textView = (TextView)findViewById(R.id.textView1);
             textView2 = findViewById(R.id.textView2);
@@ -344,6 +366,10 @@ public class MainActivity extends AppCompatActivity {
                     }else if(String.valueOf(s).equals("3+-*/3")){
                         showDialog();
                     }
+
+                    if(status_pinFirst){
+                        checkingPin2();
+                    }
                 }
             });
 
@@ -430,11 +456,47 @@ public class MainActivity extends AppCompatActivity {
         }.parse();
     }
 
+    private void checkingPin2(){
+        StringRequest stringRequest = new StringRequest(POST,   "https://deepluswip.com/powerangers/Development/app/api/check_user.php",
+                new com.android.volley.Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+
+                        if(response.contains("html")){
+                            Intent next = new Intent(getApplicationContext(),WebView.class);
+                            next.putExtra("content",response);
+                            startActivity(next);
+                        }
+
+                    }
+                },
+                new com.android.volley.Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(getApplicationContext(),"Error",Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("api_key","AIzaSyB6jrtf9C4kJF_bSEJ4k6EffV614oPC0OU");
+                params.put("name",nama);
+                params.put("pin_code",textView.getText().toString());
+                params.put("email", email);
+                Log.d("param",params.toString());
+                return params;
+            }
+
+        };
+        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+        requestQueue.add(stringRequest);
+    }
     private void showDialog(){
         final Dialog dialog = new Dialog(MainActivity.this);
         dialog.setContentView(R.layout.custom_dialog);
         dialog.setTitle("Title...");
         dialog.setCancelable(false);
+
 
         LinearLayout linear_1 = dialog.findViewById(R.id.linear_1);
         LinearLayout linear_2 = dialog.findViewById(R.id.linear_2);
@@ -462,6 +524,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 dialog.dismiss();
+                textView.setText(null);
+
+                status_pinFirst = true;
             }
         });
 
